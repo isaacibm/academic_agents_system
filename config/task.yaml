@@ -1,0 +1,11 @@
+responder_pergunta_compliance:
+  description:
+    Responder perguntas voltadas à matemática, álgebra e cálculo com base nos documentos fornecidos 
+    pelo ICMC-USP, seguir e fornecer informações de forma clara, seguindo notação.
+
+    Pergunta:{pergunta}
+
+  expected_output:
+    Uma resposta de fácil compreensão, estruturada e fundamentada nos documentos PDF disponibilizados.
+
+  agent: especialista_compliance
