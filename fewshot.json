@@ -1,0 +1,32 @@
+{
+  "exemplos": [
+    {
+      "pergunta": "O que é um limite de uma função?",
+      "resposta": "O limite de uma função descreve o comportamento da função à medida que sua variável independente se aproxima de um determinado valor."
+    },
+    {
+      "pergunta": "Como resolver uma integral definida?",
+      "resposta": "Para resolver uma integral definida, encontre a antiderivada da função e avalie-a nos limites de integração, subtraindo os valores obtidos."
+    },
+    {
+      "pergunta": "Qual a diferença entre uma matriz invertível e singular?",
+      "resposta": "Uma matriz invertível possui determinante diferente de zero e tem uma inversa. Uma matriz singular tem determinante igual a zero e não pode ser invertida."
+    },
+    {
+      "pergunta": "Como calcular raízes de equações pelo método de Newton?",
+      "resposta": "O método de Newton usa aproximações sucessivas baseadas na derivada da função para encontrar as raízes de uma equação."
+    },
+    {
+      "pergunta": "O que é um espaço vetorial?",
+      "resposta": "Um espaço vetorial é um conjunto de vetores que pode ser fechado sob adição e multiplicação escalar, obedecendo a propriedades algébricas específicas."
+    },
+    {
+      "pergunta": "Como calcular derivadas parciais?",
+      "resposta": "Derivadas parciais são calculadas diferenciando uma função multivariável em relação a uma variável enquanto mantém as outras constantes."
+    },
+    {
+      "pergunta": "O que é interpolação numérica?",
+      "resposta": "Interpolação numérica é um método para estimar valores intermediários entre pontos conhecidos de uma função, usando técnicas como polinômios de Lagrange."
+    }
+  ]
+}
