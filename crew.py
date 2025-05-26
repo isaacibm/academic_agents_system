@@ -2,6 +2,7 @@ from crewai import Agent, Task, Process, Crew, LLM
 from crewai.project import CrewBase, agent, crew, task
 from crewai.knowledge.source.pdf_knowledge_source import PDFKnowledgeSource
 
+
 pdf_tool = PDFKnowledgeSource(
     file_path=['calc4.pdf', 'SMA_88_apostila_algebra_linear.pdf', 
                'SMA_88_Calculo2Vetorial.pdf', 'SMA_88_claudio.pdf']

@@ -18,6 +18,4 @@ if st.button("Executar"):
 
         resultado = run_compliance_assistant(pergunta_usuario)
         st.subheader("Resposta IA")
-        st.markdown(f'<p style="color:white; font-size:18px;">{resultado}</p>', unsafe_allow_html=True)
-
-        #st.write(resultado)
+        st.markdown(f'<p style="color: black !important;">{resultado}</p>', unsafe_allow_html=True)

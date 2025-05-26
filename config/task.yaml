@@ -7,5 +7,6 @@ responder_pergunta_compliance:
 
   expected_output:
     Uma resposta de fácil compreensão, estruturada e fundamentada nos documentos PDF disponibilizados.
+    Quando necessário, utilizar LaTeX para expressar fórmulas matemáticas, gráficos ou outras representações visuais.
 
   agent: especialista_compliance
