@@ -25,7 +25,8 @@ langchain>=0.1.0
 langchain-community>=0.0.20
 
 # LLM e IA
-# watsonx-ai>=1.0.0
+ibm-watsonx-ai
+ibm-watson
 
 # Desenvolvimento e testes (opcionais)
 pytest>=7.4.0
