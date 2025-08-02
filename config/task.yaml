@@ -1,12 +1,93 @@
-responder_pergunta_compliance:
-  description:
-    Responder perguntas voltadas à matemática, álgebra e cálculo com base nos documentos fornecidos 
-    pelo ICMC-USP, seguir e fornecer informações de forma clara, seguindo notação.
+# Tarefas para Assistente Acadêmico Universal
 
-    Pergunta:{pergunta}
+responder_pergunta_academica:
+  description: >
+    Responder perguntas acadêmicas de forma clara, estruturada e fundamentada nos 
+    documentos fornecidos. A resposta deve ser adaptada ao nível e área de conhecimento
+    específica da pergunta.
 
-  expected_output:
-    Uma resposta de fácil compreensão, estruturada e fundamentada nos documentos PDF disponibilizados.
-    Quando necessário, utilizar LaTeX para expressar fórmulas matemáticas, gráficos ou outras representações visuais.
+    Área de Conhecimento: {area_conhecimento}
+    Pergunta: {pergunta}
+    
+    INSTRUÇÕES ESPECÍFICAS:
+    - Use APENAS informações dos documentos fornecidos como base
+    - Para matemática/física: utilize notação LaTeX para fórmulas e equações
+    - Para programação: inclua exemplos de código quando apropriado  
+    - Para engenharia: conecte teoria com aplicações práticas
+    - Para estatística: inclua interpretação de resultados quando relevante
+    - Cite as fontes dos documentos quando possível
+    - Se a informação não estiver disponível nos documentos, indique claramente
 
-  agent: especialista_compliance
+  expected_output: >
+    Uma resposta acadêmica completa e estruturada contendo:
+    1. Resposta direta à pergunta
+    2. Explicação detalhada baseada nos documentos
+    3. Exemplos práticos quando aplicável
+    4. Referências aos materiais consultados
+    5. Sugestões de aprofundamento se apropriado
+    
+    A resposta deve usar formatação apropriada (LaTeX para matemática, código para programação)
+    e ser adequada ao nível acadêmico da questão.
+
+  agent: agente_{area_codigo}
+
+analisar_documento_academico:
+  description: >
+    Analisar documentos acadêmicos específicos para extrair informações relevantes
+    sobre um tópico ou responder a questões específicas.
+
+    Documento(s): {documentos}
+    Tópico de Análise: {topico}
+    Pergunta Específica: {pergunta}
+
+  expected_output: >
+    Análise estruturada do documento contendo:
+    1. Resumo dos pontos principais relacionados ao tópico
+    2. Resposta específica à pergunta baseada no documento
+    3. Citações relevantes do material
+    4. Conceitos-chave identificados
+    5. Conexões com outros tópicos quando apropriado
+
+  agent: agente_geral
+
+explicar_conceito_academico:
+  description: >
+    Explicar conceitos acadêmicos de forma didática e progressiva, desde conceitos
+    básicos até aplicações avançadas, utilizando os materiais de referência.
+
+    Conceito: {conceito}
+    Área: {area_conhecimento}
+    Nível: {nivel}  # básico, intermediário, avançado
+
+  expected_output: >
+    Explicação didática estruturada contendo:
+    1. Definição clara do conceito
+    2. Pré-requisitos necessários
+    3. Explicação passo a passo
+    4. Exemplos ilustrativos
+    5. Aplicações práticas
+    6. Exercícios ou problemas relacionados quando apropriado
+    7. Referências para aprofundamento
+
+  agent: agente_{area_codigo}
+
+resolver_problema_academico:
+  description: >
+    Resolver problemas acadêmicos específicos fornecendo solução completa e 
+    metodologia de resolução baseada nos materiais de referência.
+
+    Problema: {problema}
+    Área: {area_conhecimento}
+    Nível de Detalhe: {nivel_detalhe}  # resumido, detalhado, muito_detalhado
+
+  expected_output: >
+    Solução completa do problema contendo:
+    1. Análise do problema
+    2. Identificação dos conceitos envolvidos
+    3. Metodologia de resolução
+    4. Solução passo a passo
+    5. Verificação da resposta
+    6. Discussão de métodos alternativos quando aplicável
+    7. Generalização para problemas similares
+
+  agent: agente_{area_codigo}
