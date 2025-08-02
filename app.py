@@ -1,12 +1,9 @@
-import streamlit as st
-from main import (
-    run_academic_assistant, 
-    run_concept_explanation, 
-    run_problem_solver,
-    get_available_subjects,
-    get_subject_documents_info
-)
+import os
 import time
+import streamlit as st
+from main import run_academic_assistant  # fallback se AcademicCrew não tiver .run
+from utils.document_processor import DocumentProcessor
+from crew import AcademicCrew  # ajuste o path se estiver em outro módulo
 
 # Configuração da página
 st.set_page_config(
@@ -54,7 +51,7 @@ st.markdown("""
     <p style="position: absolute; top: 1rem; right: 1rem;">
         <a href="https://cdnlogo.com/logo/ibm_37962.html"><img src="https://static.cdnlogo.com/logos/i/92/ibm.png" alt="IBM Logo" style="height: 120px; width: auto;"></a>
     </p>
-    <p>Sistema inteligente para apoio acadêmico em múltiplas disciplinas</p>
+    <p>Converse com seus documentos acadêmicos usando IBM Watsonx</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -64,82 +61,135 @@ if 'current_subject' not in st.session_state:
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-# Sidebar para configurações
-with st.sidebar:    
-    # Informações sobre disciplinas disponíveis
-    subjects_info = get_subject_documents_info()
-    available_subjects = get_available_subjects()
-    
-    st.subheader("📚 Disciplinas Disponíveis")
-    
-    subject_options = {}
-    for subject_id, subject_data in available_subjects.items():
-        docs_count = subjects_info.get(subject_id, {}).get("documents_count", 0)
-        status_icon = "✅" if docs_count > 0 else "⚠️"
-        display_name = f"{status_icon} {subject_data['name']}"
-        if docs_count > 0:
-            display_name += f" ({docs_count} docs)"
-        subject_options[display_name] = subject_id
-    
-    selected_subject_display = st.selectbox(
-        "Selecione a disciplina:",
-        options=list(subject_options.keys()),
-        index=0
-    )
-    
-    st.session_state.current_subject = subject_options[selected_subject_display]
-    
-    # Informações da disciplina selecionada
-    current_subject_info = available_subjects.get(st.session_state.current_subject)
-    if current_subject_info:
+# Sidebar para escolha de disciplina
+# helper
+def human_readable_size(n_bytes: int) -> str:
+    for unit in ["B", "KB", "MB", "GB"]:
+        if n_bytes < 1024:
+            return f"{n_bytes:.1f}{unit}"
+        n_bytes /= 1024
+    return f"{n_bytes:.1f}TB"
+
+# CSS moderno para sidebar
+st.markdown("""
+<style>
+.subject-pill-wrapper { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.subject-pill { padding: 6px 14px; border-radius: 999px; background: #f1f5fe; cursor: pointer; font-weight: 600; border: 1px solid transparent; transition: all .2s; font-size: 0.9rem; }
+.subject-pill:hover { filter: brightness(1.05); }
+.subject-pill.selected { background: linear-gradient(135deg,#667eea,#764ba2); color: white; box-shadow:0 8px 20px rgba(102,126,234,.35); }
+.subject-card { background: #ffffff; border-radius: 12px; padding: 14px; box-shadow: 0 12px 30px rgba(0,0,0,0.05); margin-bottom: 14px; }
+.pdf-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eef2f7; }
+.pdf-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
+.badge { background: #e7f1ff; padding: 2px 8px; border-radius: 8px; font-size: 0.55rem; margin-left: 6px; }
+.small-muted { font-size: 0.7rem; color: #6b7280; }
+</style>
+""", unsafe_allow_html=True)
+
+with st.sidebar:
+    st.markdown("### 📚 Disciplinas Disponíveis")
+
+    doc_proc = DocumentProcessor()
+    raw_subjects = doc_proc.get_available_subjects()  # lista de IDs
+
+    subject_options = {s: s.replace("_", " ").title() for s in raw_subjects}
+
+    if not subject_options:
+        st.info("Nenhuma disciplina encontrada na base de conhecimento.")
+        selected_subject_id = st.session_state.current_subject
+    else:
+        # pills de seleção
+        st.markdown('<div class="subject-pill-wrapper">', unsafe_allow_html=True)
+        for sid, display in subject_options.items():
+            is_selected = st.session_state.current_subject == sid
+            if is_selected:
+                st.markdown(f'<div class="subject-pill selected">{display}</div>', unsafe_allow_html=True)
+            else:
+                if st.button(display, key=f"select_{sid}"):
+                    st.session_state.current_subject = sid
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        selected_subject_id = st.session_state.current_subject if st.session_state.current_subject in subject_options else list(subject_options.keys())[0]
+        st.divider()
+
+        # Card da disciplina atual
+        subject_info = doc_proc.get_subject_info(selected_subject_id)
+        name = subject_info.get("name", selected_subject_id.replace("_", " ").title())
+        description = subject_info.get("description", "Sem descrição disponível.")
+
         st.markdown(f"""
         <div class="subject-card">
-            <h4>{current_subject_info['name']}</h4>
-            <p><small>{current_subject_info['description']}</small></p>
-            <p><strong>Documentos:</strong> {subjects_info.get(st.session_state.current_subject, {}).get('documents_count', 0)}</p>
+            <h4 style="margin:4px 0;">{name}</h4>
+            <p style="margin:4px 0;" class="small-muted">{description}</p>
         </div>
         """, unsafe_allow_html=True)
-    
+
+        # Documentos
+        subject_path = doc_proc.knowledge_base_path / selected_subject_id
+        pdf_path_objects = [
+            p for p in subject_path.rglob("*")
+            if p.is_file() and p.suffix.lower() == ".pdf"
+        ]
+
+        with st.expander("📄 Documentos", expanded=True):
+            if pdf_path_objects:
+                for p in sorted(pdf_path_objects):
+                    rel = p.relative_to(doc_proc.knowledge_base_path)
+                    try:
+                        size = p.stat().st_size
+                        hr_size = human_readable_size(size)
+                    except Exception:
+                        hr_size = "—"
+                    st.markdown(
+                        f'<div class="pdf-item"><div class="pdf-name">📄 {rel}</div>'
+                        f'<div><span class="badge">{hr_size}</span></div></div>',
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.info("Nenhum PDF encontrado nesta disciplina.")
+
     st.divider()
 
+# Área principal do chat
+st.markdown("### 💬 No que você está pensando hoje?")
 
-# Interface baseada no tipo de tarefa
-st.markdown('<h2 class="task-type-header">💬 Como posso te ajudar hoje?</h2>', unsafe_allow_html=True)
+# Exibe histórico
+for message in st.session_state.chat_history:
+    role = message.get("role", "assistant")
+    with st.chat_message(role):
+        st.markdown(message.get("content", ""))
 
-pergunta = st.text_area(
-    "Digite sua pergunta:",
-    placeholder="Ex: Como calcular a derivada de uma função composta?",
-    height=100,
-    key="pergunta_input"
-)
+# Entrada de novo prompt
+placeholder = f"Pergunte algo sobre {subject_options.get(st.session_state.current_subject, 'Geral')}..."
+if prompt := st.chat_input(placeholder):
+    # Registra input do usuário
+    st.session_state.chat_history.append({
+        "role": "user",
+        "content": prompt,
+        "subject": st.session_state.current_subject,
+        "timestamp": time.strftime("%H:%M:%S")
+    })
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-if st.button("🚀 Obter Resposta", type="primary"):
-    if not pergunta.strip():
-        st.warning("⚠️ Por favor, digite sua pergunta antes de executar")
-    else:
-        with st.spinner("🔍 Processando sua pergunta..."):
+    with st.chat_message("assistant"):
+        with st.spinner("🤔 O agente está trabalhando nisso..."):
+            crew_manager = AcademicCrew(subject_id=st.session_state.current_subject)
             try:
-                resultado = run_academic_assistant(
-                    pergunta, 
-                    st.session_state.current_subject
-                )
-                
-                st.markdown("### 📝 Resposta:")
-                st.markdown(resultado) 
-                
-                # Adiciona ao histórico
-                st.session_state.chat_history.append({
-                    "tipo": "Pergunta",
-                    "input": pergunta,
-                    "output": resultado,
-                    "disciplina": current_subject_info['name'],
-                    "timestamp": time.strftime("%H:%M:%S")
-                })
-                
-            except Exception as e:
-                st.error(f"❌ Erro ao processar pergunta: {str(e)}")
+                response = crew_manager.run(question=prompt)
+            except AttributeError:
+                response = run_academic_assistant(prompt, st.session_state.current_subject)
 
-# Footer com informações fixo
+            st.markdown(response)
+
+            # Armazena resposta no histórico
+            st.session_state.chat_history.append({
+                "role": "assistant",
+                "content": response,
+                "subject": st.session_state.current_subject,
+                "timestamp": time.strftime("%H:%M:%S")
+            })
+
+# Footer fixo
 st.divider()
 st.markdown("""
 <div style="

@@ -1,143 +1,115 @@
-from crew import AcademicCrew, ComplianceCrew
-from utils.document_processor import DocumentProcessor
-from typing import Dict, Any, Optional
+import logging
+import os
+import time
+from typing import Optional
+
+from crew import AcademicCrew
 
 
-def run_academic_assistant(pergunta: str, subject_id: str = "geral", task_type: str = "responder_pergunta_academica") -> str:
+def setup_logger() -> logging.Logger:
     """
-    Executa assistente acadêmico para uma disciplina específica
-    
-    Args:
-        pergunta: Pergunta do usuário
-        subject_id: ID da disciplina (matematica, fisica, computacao, etc.)
-        task_type: Tipo de tarefa a executar
-    
-    Returns:
-        Resposta do assistente acadêmico
+    Configura o logger com formatação que inclui subject e task_key.
+    Variáveis de ambiente opcionais:
+      - ACADEMIC_ASSISTANT_LOG_LEVEL (default: INFO)
+      - ACADEMIC_ASSISTANT_LOG_FILE (se quiser persistir em arquivo)
     """
-    print(f"Instanciando AcademicCrew para {subject_id}...")
-    crew_instance = AcademicCrew(subject_id)
-    
-    print("Preparando inputs...")
-    
-    # Obtém informações da disciplina de forma segura
-    subject_info = crew_instance.doc_processor.get_subject_info(subject_id)
-    area_conhecimento = "Geral"
-    
-    if subject_info and isinstance(subject_info, dict):
-        area_conhecimento = subject_info.get("name", "Geral")
-    elif subject_id != "geral":
-        # Se não encontrou a disciplina, usa o próprio ID como fallback
-        area_conhecimento = subject_id.title()
-    
-    inputs = {
-        "pergunta": pergunta,
-        "area_conhecimento": area_conhecimento,
-        "area_codigo": subject_id
-    }
-    
-    print("Rodando kickoff...")
-    crew = crew_instance.create_crew(task_type, inputs)
-    result = crew.kickoff(inputs=inputs)
-    
-    return str(result)
+    log_level_str = os.getenv("ACADEMIC_ASSISTANT_LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, log_level_str, logging.INFO)
+
+    logger = logging.getLogger("academic_assistant")
+    if logger.handlers:
+        logger.setLevel(level)
+        return logger
+
+    # Formatter que espera os campos extra subject e task_key
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] [subject=%(subject)s] [task_key=%(task_key)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
+    # Handler para console
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    # Handler opcional para arquivo
+    log_file = os.getenv("ACADEMIC_ASSISTANT_LOG_FILE")
+    if log_file:
+        fh = logging.FileHandler(log_file)
+        fh.setLevel(level)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+
+    logger.propagate = False
+    logger.setLevel(level)
+
+    # Também encaminha logs internos do CrewAI para o mesmo destino (se quiser)
+    crewai_logger = logging.getLogger("crewai")
+    crewai_logger.setLevel(level)
+    for h in logger.handlers:
+        crewai_logger.addHandler(h)
+
+    return logger
 
 
-def run_concept_explanation(conceito: str, subject_id: str, nivel: str = "intermediario") -> str:
+class ContextFilter(logging.Filter):
     """
-    Executa explicação de conceito acadêmico
-    
-    Args:
-        conceito: Conceito a ser explicado
-        subject_id: ID da disciplina
-        nivel: Nível de explicação (basico, intermediario, avancado)
-    
-    Returns:
-        Explicação do conceito
+    Garante que todo LogRecord tenha os atributos subject e task_key,
+    usando valores padrão quando não fornecidos explícitamente.
     """
-    print(f"Explicando conceito '{conceito}' para {subject_id}...")
-    crew_instance = AcademicCrew(subject_id)
-    
-    # Obtém informações da disciplina de forma segura
-    subject_info = crew_instance.doc_processor.get_subject_info(subject_id)
-    area_conhecimento = subject_id.title() if subject_id != "geral" else "Geral"
-    
-    if subject_info and isinstance(subject_info, dict):
-        area_conhecimento = subject_info.get("name", area_conhecimento)
-    
-    inputs = {
-        "conceito": conceito,
-        "nivel": nivel,
-        "area_conhecimento": area_conhecimento,
-        "area_codigo": subject_id
-    }
-    
-    crew = crew_instance.create_crew("explicar_conceito_academico", inputs)
-    result = crew.kickoff(inputs=inputs)
-    
-    return str(result)
+    def __init__(self):
+        super().__init__()
+        self.subject = "unknown"
+        self.task_key = "none"
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.subject = getattr(record, "subject", self.subject)
+        record.task_key = getattr(record, "task_key", self.task_key)
+        return True
 
 
-def run_problem_solver(problema: str, subject_id: str, nivel_detalhe: str = "detalhado") -> str:
+# Instancia logger e adiciona filtro global para contexto
+logger = setup_logger()
+context_filter = ContextFilter()
+logger.addFilter(context_filter)
+
+
+def run_academic_assistant(
+    question: str,
+    subject_id: str,
+    task_key: str = "elaborar_explicacao_tecnica"
+) -> str:
     """
-    Executa resolução de problema acadêmico
-    
-    Args:
-        problema: Problema a ser resolvido
-        subject_id: ID da disciplina
-        nivel_detalhe: Nível de detalhe (resumido, detalhado, muito_detalhado)
-    
-    Returns:
-        Solução do problema
+    Wrapper de orquestração: cria o AcademicCrew, dispara o kickoff e faz logging detalhado.
     """
-    print(f"Resolvendo problema para {subject_id}...")
-    crew_instance = AcademicCrew(subject_id)
-    
-    # Obtém informações da disciplina de forma segura
-    subject_info = crew_instance.doc_processor.get_subject_info(subject_id)
-    area_conhecimento = subject_id.title() if subject_id != "geral" else "Geral"
-    
-    if subject_info and isinstance(subject_info, dict):
-        area_conhecimento = subject_info.get("name", area_conhecimento)
-    
-    inputs = {
-        "problema": problema,
-        "nivel_detalhe": nivel_detalhe,
-        "area_conhecimento": area_conhecimento,
-        "area_codigo": subject_id
-    }
-    
-    crew = crew_instance.create_crew("resolver_problema_academico", inputs)
-    result = crew.kickoff(inputs=inputs)
-    
-    return str(result)
+    # injeta contexto
+    context_filter.subject = subject_id
+    context_filter.task_key = task_key
 
+    logger.info("Iniciando run_academic_assistant", extra={"subject": subject_id, "task_key": task_key})
+    start_ts = time.perf_counter()
 
-def get_available_subjects() -> Dict[str, Dict]:
-    """Retorna disciplinas disponíveis no sistema"""
-    doc_processor = DocumentProcessor()
-    return doc_processor.get_available_subjects()
+    try:
+        crew_instance = AcademicCrew(subject_id=subject_id)
 
+        # log de informações da disciplina
+        try:
+            subject_info = crew_instance.doc_processor.get_subject_info(subject_id)
+            logger.debug(f"Informações da disciplina carregadas: {subject_info}", extra={"subject": subject_id, "task_key": task_key})
+        except Exception as e:
+            logger.warning(f"Falha ao obter subject_info: {e}", extra={"subject": subject_id, "task_key": task_key})
 
-def get_subject_documents_info() -> Dict[str, Any]:
-    """Retorna informações sobre documentos por disciplina"""
-    doc_processor = DocumentProcessor()
-    documents_by_subject = doc_processor.scan_knowledge_directory()
-    subjects_info = {}
-    
-    for subject_id, subject_info in doc_processor.get_available_subjects().items():
-        docs_count = len(subject_info.get("documents", []))
-        subjects_info[subject_id] = {
-            "name": subject_info["name"],
-            "description": subject_info["description"],
-            "documents_count": docs_count,
-            "has_documents": docs_count > 0
-        }
-    
-    return subjects_info
+        # Executa via wrapper .run (que faz create_crew + kickoff)
+        result = crew_instance.run(question, task_key=task_key)
 
+        duration = time.perf_counter() - start_ts
+        logger.info(f"Kickoff concluído em {duration:.2f}s", extra={"subject": subject_id, "task_key": task_key})
+        logger.debug(f"Resultado bruto: {result}", extra={"subject": subject_id, "task_key": task_key})
 
-# Mantém compatibilidade com código anterior
-def run_compliance_assistant(pergunta: str):
-    """Função de compatibilidade - redireciona para matemática"""
-    return run_academic_assistant(pergunta, "matematica")
+        return str(result)
+
+    except Exception as err:
+        duration = time.perf_counter() - start_ts
+        logger.exception(f"Erro durante run_academic_assistant após {duration:.2f}s: {err}", extra={"subject": subject_id, "task_key": task_key})
+        return f"Erro interno ao processar a pergunta: {err}"

@@ -1,0 +1,114 @@
+resolver_problemas:
+  description: >
+    Analisar e resolver uma atividade, problema ou desafio técnico específico de uma
+    área de conhecimento. A solução deve ser detalhada, passo a passo e formatada
+    de acordo com as melhores práticas da área.
+
+    **Área de Conhecimento:** {area_conhecimento}
+    **Enunciado da Atividade:** {enunciado}
+
+    **INSTRUÇÕES GERAIS:**
+    - **Sempre** formate todas as fórmulas matemáticas em LaTeX. Use `$$...$$` para equações em bloco e `$...$` para expressões inline.
+    - Seja didático: explique o raciocínio antes de apresentar a fórmula final.
+    - Quando a área for Matemática, forneça provas e derivação usando notação LaTeX.
+    - Quando a área for Programação, entregue código funcional, análise de complexidade e testes.
+
+    **EXEMPLOS DE SAÍDA (few-shot):**
+
+    *Exemplo 1 — Matemática (Derivada):*  
+    Enunciado: "Calcule a derivada de \( f(x) = \sin(x^2) \)."  
+    Resposta resumida:  
+    1. Aplicamos a regra da cadeia:  
+       \[
+       f(x) = \sin(x^2),\quad f'(x) = \cos(x^2)\cdot \frac{d}{dx}(x^2) = 2x\cos(x^2)
+       \]
+    2. Resultado final:  
+       $$f'(x) = 2x\cos(x^2)$$  
+    3. Verificação: ao derivar numericamente em um ponto, confirma-se a consistência.
+
+    *Exemplo 2 — Programação (Quicksort):*  
+    Enunciado: "Implemente o algoritmo Quicksort em Python e analise sua complexidade."  
+    Resposta resumida:  
+    - Código:
+      ```python
+      def quicksort(arr):
+          if len(arr) <= 1:
+              return arr
+          pivot = arr[len(arr)//2]
+          left = [x for x in arr if x < pivot]
+          middle = [x for x in arr if x == pivot]
+          right = [x for x in arr if x > pivot]
+          return quicksort(left) + middle + quicksort(right)
+      ```
+    - Complexidade média: \(O(n \log n)\), pior caso \(O(n^2)\) (quando o pivô é sempre extremo).  
+    - Teste simples:
+      ```python
+      assert quicksort([3,1,4,1,5,9,2]) == sorted([3,1,4,1,5,9,2])
+      ```
+
+  expected_output: >
+    Uma solução completa e bem documentada para a atividade, no formato Markdown, contendo:
+    1. Análise detalhada do enunciado e dos requisitos.
+    2. Identificação dos conceitos, algoritmos ou teoremas fundamentais para a solução.
+    3. Desenvolvimento da solução passo a passo, com justificativas claras para cada etapa.
+    4. Apresentação do resultado final (código-fonte completo, demonstração matemática, etc.).
+    5. Verificação da solução (por meio de testes, prova de correção ou análise dimensional).
+    6. **Todas as fórmulas matemáticas devem estar em LaTeX**, com equações em bloco usando `$$...$$` e expressões inline usando `$...$`.
+
+  agent: [agente_calculo, agente_programacao]
+
+
+elaborar_explicacao_tecnica:
+  description: >
+    Elaborar uma explicação técnica e didática sobre um tópico, conceito, teorema
+    ou tecnologia específica. A explicação deve ser estruturada, clara e rica em
+    exemplos relevantes para a área de conhecimento.
+
+    **Área de Conhecimento:** {area_conhecimento}
+    **Tópico a ser Explicado:** {topico}
+
+    **INSTRUÇÕES GERAIS:**
+    - **Sempre** use LaTeX para representar fórmulas matemáticas e notações formais. Use `$$...$$` para equações de destaque e `$...$` para inline.
+    - Contextualize: diga por que o tópico importa, como ele se aplica e quais são suas limitações.
+    - Inclua exemplos práticos (ex: equações resolvidas, pseudocódigo, trechos de código).
+
+    **EXEMPLOS DE SAÍDA (few-shot):**
+
+    *Exemplo 1 — Teorema de Pitágoras (Matemática):*  
+    - Definição: Em um triângulo retângulo, os comprimentos dos catetos \(a, b\) e da hipotenusa \(c\) satisfazem:  
+      $$a^2 + b^2 = c^2$$  
+    - Contextualização: Esse teorema permite calcular distâncias e é base para geometria euclidiana.  
+    - Demonstração (esboço): apresentação geométrica ou utilizando semelhanças de triângulos.  
+    - Exemplo: se \(a=3\) e \(b=4\), então  
+      $$c = \sqrt{3^2 + 4^2} = 5$$  
+    - Aplicações: computação gráfica, navegação, teoria dos sinais.
+
+    *Exemplo 2 — Busca Binária (Programação):*  
+    - Definição: algoritmo para encontrar um elemento em uma lista ordenada dividindo o espaço de pesquisa pela metade a cada passo.  
+    - Pseudocódigo:
+      ```text
+      left = 0
+      right = len(arr) - 1
+      while left <= right:
+          mid = (left + right) // 2
+          if arr[mid] == target:
+              return mid
+          elif arr[mid] < target:
+              left = mid + 1
+          else:
+              right = mid - 1
+      return -1
+      ```
+    - Complexidade: \(O(\log n)\) — porque a cada iteração o espaço é reduzido pela metade.  
+    - Exemplo: buscar 7 em [1,3,5,7,9] retorna índice 3.
+
+  expected_output: >
+    Uma explicação técnica completa e estruturada em Markdown, incluindo:
+    1. Definição central e formal do tópico.
+    2. Contextualização: por que o tópico é importante e que problema ele resolve.
+    3. Explicação detalhada da teoria ou do funcionamento interno.
+    4. Exemplos práticos para ilustrar a teoria (ex: trechos de código, problemas resolvidos).
+    5. Aplicações práticas e relevância no campo de estudo ou na indústria.
+    6. **Todas as fórmulas e notações formais devem usar LaTeX** (`$$...$$` para blocos, `$...$` inline).
+
+  agent: [agente_calculo, agente_programacao]
